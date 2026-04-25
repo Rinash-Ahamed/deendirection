@@ -1,0 +1,44 @@
+<svg viewBox="0 0 120 140" xmlns="http://www.w3.org/2000/svg" fill="none">
+  <!-- Outer Mihrab Arch -->
+  <path d="M 18 128 L 18 62 Q 18 14 60 10 Q 102 14 102 62 L 102 128 Z"
+        stroke="#D4AF37" stroke-width="2.2" fill="rgba(212,175,55,0.04)"/>
+
+  <!-- Inner Mihrab Arch -->
+  <path d="M 28 128 L 28 67 Q 28 26 60 22 Q 92 26 92 67 L 92 128 Z"
+        stroke="#D4AF37" stroke-width="1.2" stroke-opacity="0.45" fill="none"/>
+
+  <!-- Keystone top detail -->
+  <path d="M 52 10 Q 60 4 68 10" stroke="#D4AF37" stroke-width="1.6" fill="none"/>
+
+  <!-- Compass outer ring -->
+  <circle cx="60" cy="72" r="22" stroke="#D4AF37" stroke-width="1.6" fill="rgba(212,175,55,0.05)"/>
+
+  <!-- Compass tick marks — cardinal -->
+  <line x1="60" y1="50" x2="60" y2="54" stroke="#D4AF37" stroke-width="1.8"/>
+  <line x1="60" y1="90" x2="60" y2="94" stroke="#D4AF37" stroke-width="1.2" stroke-opacity="0.5"/>
+  <line x1="38" y1="72" x2="42" y2="72" stroke="#D4AF37" stroke-width="1.2" stroke-opacity="0.5"/>
+  <line x1="78" y1="72" x2="82" y2="72" stroke="#D4AF37" stroke-width="1.2" stroke-opacity="0.5"/>
+
+  <!-- Compass tick marks — diagonal (small) -->
+  <line x1="44.4" y1="56.4" x2="47.2" y2="59.2" stroke="#D4AF37" stroke-width="0.9" stroke-opacity="0.35"/>
+  <line x1="75.6" y1="56.4" x2="72.8" y2="59.2" stroke="#D4AF37" stroke-width="0.9" stroke-opacity="0.35"/>
+  <line x1="44.4" y1="87.6" x2="47.2" y2="84.8" stroke="#D4AF37" stroke-width="0.9" stroke-opacity="0.35"/>
+  <line x1="75.6" y1="87.6" x2="72.8" y2="84.8" stroke="#D4AF37" stroke-width="0.9" stroke-opacity="0.35"/>
+
+  <!-- North needle (Qibla pointer) -->
+  <polygon points="60,54 63.5,72 60,68 56.5,72" fill="#D4AF37"/>
+  <!-- South needle -->
+  <polygon points="60,90 63.5,72 60,76 56.5,72" fill="#D4AF37" fill-opacity="0.35"/>
+
+  <!-- Center dot -->
+  <circle cx="60" cy="72" r="2.8" fill="#D4AF37"/>
+
+  <!-- Bottom platform / minbar steps -->
+  <rect x="20" y="126" width="80" height="3.5" rx="1.75" fill="#D4AF37"/>
+  <rect x="14" y="129.5" width="92" height="2.5" rx="1.25" fill="#D4AF37" fill-opacity="0.55"/>
+  <rect x="8"  y="132"   width="104" height="2"  rx="1"    fill="#D4AF37" fill-opacity="0.3"/>
+
+  <!-- Side pillar accents -->
+  <rect x="14" y="62" width="4" height="64" rx="2" fill="#D4AF37" fill-opacity="0.12"/>
+  <rect x="102" y="62" width="4" height="64" rx="2" fill="#D4AF37" fill-opacity="0.12"/>
+</svg>
