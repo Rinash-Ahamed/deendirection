@@ -224,7 +224,7 @@ export function AppProvider({ children }) {
 
   const triggerAlert = useCallback((title, body) => {
     if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body, icon: '/icons/logo.svg' });
+      new Notification(title, { body, icon: '/icons/onlylogo.png' });
     }
 
     if (notificationSound) {

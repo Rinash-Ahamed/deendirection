@@ -89,7 +89,7 @@ hidaya/
 ├── public/
 │   ├── manifest.json          # PWA manifest
 │   └── icons/
-│       ├── logo.svg           # ← Replace with your logo
+│       ├── logo.png           # ← Replace with your logo
 │       ├── icon-192.png       # ← Replace with your icon
 │       └── icon-512.png       # ← Replace with your icon
 ├── src/
@@ -119,12 +119,12 @@ hidaya/
 1. Design your logo following these guidelines:
    - **Shape:** Mihrab (pointed arch) with subtle compass element
    - **Style:** Gold `#D4AF37` on transparent/dark background
-   - **Format:** SVG for crisp rendering at all sizes
+   - **Format:** PNG with a transparent background
    - **Clearspace:** Minimum 10% padding on all sides
 
 2. Replace files:
    ```
-   public/icons/logo.svg      → Your SVG logo
+   public/icons/logo.png      → Your PNG logo
    public/icons/icon-192.png  → 192×192 PNG (square, with padding)
    public/icons/icon-512.png  → 512×512 PNG (square, with padding)
    ```

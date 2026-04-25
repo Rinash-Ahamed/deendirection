@@ -4,11 +4,11 @@ import { useApp, PRAYER_NAMES, formatTime, toHijri, HIJRI_MONTHS } from '../cont
 
 function getGreeting() {
   const h = new Date().getHours();
-  if (h < 5)  return { text: 'Good night',    arabic: 'ليلة طيبة'  };
-  if (h < 12) return { text: 'Good morning',   arabic: 'صباح الخير' };
-  if (h < 17) return { text: 'Good afternoon', arabic: 'مساء النور' };
-  if (h < 21) return { text: 'Good evening',   arabic: 'مساء الخير' };
-  return              { text: 'Good night',    arabic: 'ليلة طيبة'  };
+  if (h < 5)  return { text: 'Peaceful night',  arabic: 'ليلة مطمئنة' };
+  if (h < 12) return { text: 'Blessed morning', arabic: 'صباح مبارك' };
+  if (h < 17) return { text: 'Blessed day',     arabic: 'يوم مبارك' };
+  if (h < 21) return { text: 'Blessed evening', arabic: 'مساء مبارك' };
+  return              { text: 'Peaceful night',  arabic: 'ليلة مطمئنة' };
 }
 
 function GregorianDate() {
@@ -263,8 +263,8 @@ export default function Home() {
       }}>
         {/* Logo + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/icons/logo.svg" alt="Hidaya" width={36} height={36}
-               style={{ filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.4))' }} />
+          <img src="/icons/onlylogo.png" alt="Hidaya" width={36} height={36}
+               style={{ filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.4))', borderRadius: 8 }} />
           <div>
             <p style={{ fontFamily: 'Cinzel, serif', fontSize: 18, color: '#D4AF37', letterSpacing: '0.1em', lineHeight: 1 }}>
               Hidaya
