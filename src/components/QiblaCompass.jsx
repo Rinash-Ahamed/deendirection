@@ -10,43 +10,15 @@ import { useState, useEffect, useRef } from 'react';
  *   onFacingQibla — function: callback when user is facing Qibla (+/- 5 degrees)
  */
 export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, isActive = false, onFacingQibla }) {
-  const [deviceHeading, setHeading] = useState(null);
+  const [continuousHeading, setContinuousHeading] = useState(null);
   const [hasPermission, setHasPerm] = useState(null);
-  const prevAngleRef = useRef(0);
   const wasFacingRef = useRef(false);
-  const prevHeadingRef = useRef(0);
 
-  // Angle of needle tip from top (0 = North, clockwise)
-  // When device heading = H, qibla bearing = Q:
-  //   needle rotation = Q - H  (so needle points toward Qibla relative to screen)
-  const rawTargetAngle = deviceHeading !== null
-    ? ((qiblaAngle - deviceHeading) + 360) % 360
-    : 0;
-
-  let displayAngle = 0;
-  if (deviceHeading !== null) {
-    let diff = rawTargetAngle - (prevAngleRef.current % 360);
-    if (diff > 180) diff -= 360;
-    else if (diff < -180) diff += 360;
-    displayAngle = prevAngleRef.current + diff;
-    prevAngleRef.current = displayAngle;
-  }
-
-  // Smooth rotation for the compass background dial
-  const rawHeadingAngle = deviceHeading !== null ? -deviceHeading : 0;
-  let displayHeadingAngle = 0;
-  if (deviceHeading !== null) {
-    let diffH = rawHeadingAngle - (prevHeadingRef.current % 360);
-    if (diffH > 180) diffH -= 360;
-    else if (diffH < -180) diffH += 360;
-    displayHeadingAngle = prevHeadingRef.current + diffH;
-    prevHeadingRef.current = displayHeadingAngle;
-  }
-
-  /* ── Notify parent if facing Qibla ── */
+  /* ── Notify parent & vibrate if facing Qibla ── */
   useEffect(() => {
-    if (onFacingQibla && deviceHeading !== null) {
-      // +/- 5 degrees tolerance around North (0/360) where the Qibla needle points straight up
+    if (onFacingQibla && continuousHeading !== null) {
+      const rawTargetAngle = ((qiblaAngle - continuousHeading) % 360 + 360) % 360;
+      // +/- 5 degrees tolerance around North (0/360)
       const isFacing = rawTargetAngle <= 5 || rawTargetAngle >= 355;
       
       if (isFacing && !wasFacingRef.current) {
@@ -58,7 +30,7 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
       onFacingQibla(isFacing);
     }
-  }, [rawTargetAngle, deviceHeading, onFacingQibla]);
+  }, [continuousHeading, qiblaAngle, onFacingQibla]);
 
   /* ── Request device orientation ── */
   useEffect(() => {
@@ -71,17 +43,36 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
     let useAbsolute = false;
 
     const handler = (e) => {
-      if (e.type === 'deviceorientationabsolute') {
-        useAbsolute = true;
-      } else if (useAbsolute && e.type === 'deviceorientation') {
-        return; // Ignore relative events if absolute hardware orientation is available
-      }
+      let heading = null;
 
       if (e.webkitCompassHeading != null) {
         // iOS
-        setHeading(e.webkitCompassHeading);
-      } else if (e.alpha != null) {
-        setHeading((360 - e.alpha) % 360);
+        heading = e.webkitCompassHeading;
+      } else if (e.absolute === true && e.alpha != null) {
+        // Android absolute
+        heading = (360 - e.alpha) % 360;
+      } else if (e.type === 'deviceorientationabsolute' && e.alpha != null) {
+        // Android deviceorientationabsolute
+        heading = (360 - e.alpha) % 360;
+      } else if (e.alpha != null && !useAbsolute) {
+        // Fallback to relative
+        heading = (360 - e.alpha) % 360;
+      }
+
+      if (e.absolute === true || e.type === 'deviceorientationabsolute') {
+        useAbsolute = true;
+      }
+
+      if (heading !== null) {
+        setContinuousHeading(prev => {
+          if (prev === null) return heading;
+          let diff = heading - ((prev % 360) + 360) % 360;
+          if (diff > 180) diff -= 360;
+          else if (diff < -180) diff += 360;
+          
+          // Fast exponential moving average to smooth sensor micro-jitter
+          return prev + diff * 0.4;
+        });
       }
     };
 
@@ -95,6 +86,9 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
       window.removeEventListener('deviceorientation', handler, true);
     };
   }, [isActive]);
+
+  const displayHeadingAngle = continuousHeading !== null ? -continuousHeading : 0;
+  const displayAngle = continuousHeading !== null ? qiblaAngle - continuousHeading : 0;
 
   const r    = size / 2;
   const cx   = r;
@@ -149,7 +143,6 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
             style={{
               transform: `rotate(${displayHeadingAngle}deg)`,
               transformOrigin: `${cx}px ${cy}px`,
-              transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
               willChange: 'transform'
             }}
           >
@@ -179,7 +172,6 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
                   style={{
                     transform: `rotate(${-displayHeadingAngle}deg)`,
                     transformOrigin: `${lx}px ${ly}px`,
-                    transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
                     willChange: 'transform'
                   }}
                 >
@@ -200,7 +192,6 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
             style={{
               transform: `rotate(${displayAngle}deg)`,
               transformOrigin: `${cx}px ${cy}px`,
-              transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
               willChange: 'transform'
             }}
           >

@@ -3,6 +3,12 @@ import { useApp } from '../context/AppContext.jsx';
 import QiblaCompass from '../components/QiblaCompass.jsx';
 import MihrabArch from '../components/MihrabArch.jsx';
 
+function getCompassDirection(degree) {
+  const val = Math.floor((degree / 45) + 0.5);
+  const arr = ["North", "North-East", "East", "South-East", "South", "South-West", "West", "North-West"];
+  return arr[(val % 8)];
+}
+
 export default function Qibla() {
   const { location, qiblaAngle, locLoading, fetchLocation, locationErr } = useApp();
   const [isCompassActive, setIsCompassActive] = useState(false);
@@ -122,21 +128,37 @@ export default function Qibla() {
 
           {/* Direction label */}
           <div style={{
-            background: 'rgba(15,61,46,0.45)',
-            border: '1px solid rgba(212,175,55,0.2)',
+            background: isFacingQibla ? 'rgba(212,175,55,0.15)' : 'rgba(15,61,46,0.45)',
+            border: isFacingQibla ? '1px solid rgba(212,175,55,0.6)' : '1px solid rgba(212,175,55,0.2)',
+            boxShadow: isFacingQibla ? '0 0 20px rgba(212,175,55,0.35)' : 'none',
             borderRadius: 50,
             padding: '10px 28px',
             textAlign: 'center',
             marginTop: -8,
+            transition: 'all 0.3s ease',
           }}>
-            <p style={{
-              fontFamily: 'Cinzel, serif',
-              fontSize: 14,
-              color: '#D4AF37',
-              letterSpacing: '0.1em',
-            }}>
-              Face this direction for Qibla
-            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <p style={{
+                fontFamily: 'Cinzel, serif',
+                fontSize: 16,
+                color: '#D4AF37',
+                letterSpacing: '0.08em',
+                fontWeight: 600,
+                textShadow: isFacingQibla ? '0 0 8px rgba(212,175,55,0.6)' : 'none',
+                transition: 'all 0.3s ease',
+              }}>
+                {Math.round(qiblaAngle)}° {getCompassDirection(qiblaAngle)}
+              </p>
+              <p style={{
+                fontSize: 10,
+                color: isFacingQibla ? '#D4AF37' : 'rgba(245,245,220,0.5)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+                transition: 'all 0.3s ease',
+              }}>
+                {isFacingQibla ? 'You are facing Qibla' : 'Face this direction for Qibla'}
+              </p>
+            </div>
           </div>
 
           {/* Show direction button */}
