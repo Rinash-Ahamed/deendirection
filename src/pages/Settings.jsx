@@ -294,6 +294,10 @@ export default function Settings() {
                 onChange={(e) => {
                   const file = e.target.files[0];
                   if (file) {
+                    if (file.size > 2 * 1024 * 1024) {
+                      alert('Audio file is too large. Please select a file under 2MB.');
+                      return;
+                    }
                     const reader = new FileReader();
                     reader.onload = (event) => setNotificationSound(event.target.result);
                     reader.readAsDataURL(file);

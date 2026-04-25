@@ -236,14 +236,17 @@ export default function Home() {
   // Fetch temperature when location is available
   useEffect(() => {
     if (location) {
-      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lng}&current_weather=true`)
+      const controller = new AbortController();
+      fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.lat}&longitude=${location.lng}&current_weather=true`, { signal: controller.signal })
         .then(res => res.json())
         .then(data => {
           if (data?.current_weather?.temperature != null) {
             setTemp(`${Math.round(data.current_weather.temperature)}°C`);
           }
         })
-        .catch(err => console.error("Weather fetch error", err));
+        .catch(err => { if (err.name !== 'AbortError') console.error("Weather fetch error", err); });
+      
+      return () => controller.abort();
     }
   }, [location]);
 

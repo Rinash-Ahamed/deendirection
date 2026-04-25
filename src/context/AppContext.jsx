@@ -143,6 +143,7 @@ export function AppProvider({ children }) {
   const setManualPrayerTime = useCallback((key, value) => {
     setManualPrayerTimes(prev => ({ ...prev, [key]: value }));
   }, []);
+  const [updateTrigger, setUpdateTrigger] = useState(0);
 
   /* ── Compute prayer times whenever location / method changes ── */
   useEffect(() => {
@@ -198,7 +199,7 @@ export function AppProvider({ children }) {
 
     // Hijri
     setHijri(toHijri(date));
-  }, [location, method, manualPrayerTimes]);
+  }, [location, method, manualPrayerTimes, updateTrigger]);
 
   /* ── Tick remaining countdown every second ── */
   useEffect(() => {
@@ -207,6 +208,10 @@ export function AppProvider({ children }) {
       setNext(prev => {
         if (!prev) return prev;
         const diff = prev.time - Date.now();
+        // Rollover to the next prayer slightly after reaching 0 to allow the notification to fire
+        if (diff < 0 && prev.remaining > 0) {
+          setTimeout(() => setUpdateTrigger(t => t + 1), 2000);
+        }
         return { ...prev, remaining: Math.max(0, diff) };
       });
     }, 1000);
@@ -263,6 +268,11 @@ export function AppProvider({ children }) {
               playBeep(i);         // First beep
               playBeep(i + 0.2);   // Second beep
             }
+            
+            // Close the context to prevent browser memory leaks (max active contexts limit)
+            setTimeout(() => {
+              if (audioCtx.state !== 'closed') audioCtx.close().catch(e => console.warn(e));
+            }, 6000);
           } catch (e) {
             console.warn('Web Audio API not supported:', e);
           }
@@ -294,7 +304,8 @@ export function AppProvider({ children }) {
         // Reverse geocode city name
         try {
           const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
+            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`,
+            { headers: { 'Accept-Language': 'en-US,en;q=0.9' } }
           );
           const data = await res.json();
           const city =

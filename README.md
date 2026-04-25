@@ -11,10 +11,12 @@ Hidaya (هداية) means *guidance* in Arabic. This app provides accurate Qibla
 | Feature | Details |
 |---------|---------|
 | **Qibla Compass** | Device orientation sensor + manual fallback |
-| **Prayer Times** | Accurate calculation via Adhan.js |
-| **Hijri Date** | Auto-converted Islamic calendar date |
+| **Prayer Times** | Accurate calculation via Adhan.js with manual overrides |
+| **Hijri Date** | Interactive Islamic calendar with month navigation |
+| **Custom Alerts** | Native push notifications & custom audio file uploads |
+| **Quranic Quotes** | Time-specific verses revealed on interactive prayer cards |
 | **Dark Mode** | Deep emerald & gold — dark-first always |
-| **PWA** | Installable, offline-ready, service worker |
+| **PWA** | Installable, offline-ready, local storage persistence |
 | **11 Calculation Methods** | Muslim World League, Karachi, UmmAlQura, etc. |
 | **Reverse Geocoding** | Auto-detect city via OpenStreetMap Nominatim |
 
@@ -157,14 +159,14 @@ Change via **Settings → Calculation Method**:
 
 ---
 
-## 🔔 Notification Tone
+## 🔔 Notifications & Alerts
 
-Notifications use a respectful, calm tone:
+Alerts are designed to be respectful and reliable:
 
-- *"It is time for Salah. May Allah accept your prayer."*
-- *"The time for Fajr has arrived. May your prayer be accepted."*
-
-Never pushy or promotional.
+- **Native Push Notifications:** "Time for Fajr. May your prayer be accepted."
+- **Custom Audio:** Upload your own audio file (up to 2MB) stored safely offline.
+- **Web Audio Fallback:** A clean, 5-second programmatic beep sequence if no custom sound is selected.
+- **Selective Muting:** Toggle alerts on or off for specific prayers directly from the Settings page.
 
 ---
 
@@ -192,6 +194,6 @@ Never pushy or promotional.
 
 ---
 
-*Hidaya is built with respect for Islamic values and the communities it serves.*
+*Hidaya is built with respect for Islamic values and the communities it serves. Developed by Rinash.*
 
 **Bismillah ir-Rahman ir-Rahim**
