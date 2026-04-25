@@ -145,12 +145,6 @@ export function AppProvider({ children }) {
   }, []);
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
-  /* ── Theme ── */
-  const [theme, setTheme] = useStickyState('dark', 'hidaya_theme');
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-  }, [theme]);
-
   /* ── Network Status ── */
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   useEffect(() => {
@@ -383,7 +377,6 @@ export function AppProvider({ children }) {
       reminderMinutes, setReminderMinutes,
       manualPrayerTimes, setManualPrayerTime,
       isOnline,
-      theme, setTheme,
     }}>
       {children}
     </AppCtx.Provider>
