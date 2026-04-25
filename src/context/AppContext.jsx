@@ -220,6 +220,48 @@ export function AppProvider({ children }) {
 
   /* ── Fire Notification when remaining hits 0 ── */
   const prevRemainingRef = useRef(null);
+  const reminderFiredRef = useRef(null);
+
+  const triggerAlert = useCallback((title, body) => {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/icons/logo.svg' });
+    }
+
+    if (notificationSound) {
+      const audio = new Audio(notificationSound);
+      audio.play().catch(e => console.warn('Audio playback blocked:', e));
+    } else {
+      // Fallback: 5-second beep-beep sequence via Web Audio API
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 5; i++) {
+          const playBeep = (offset) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 880; // A5 note
+            gain.gain.setValueAtTime(0, now + offset);
+            gain.gain.linearRampToValueAtTime(0.5, now + offset + 0.05);
+            gain.gain.setValueAtTime(0.5, now + offset + 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + offset + 0.15);
+            osc.start(now + offset);
+            osc.stop(now + offset + 0.15);
+          };
+          playBeep(i);         // First beep
+          playBeep(i + 0.2);   // Second beep
+        }
+        
+        // Close the context to prevent browser memory leaks
+        setTimeout(() => {
+          if (audioCtx.state !== 'closed') audioCtx.close().catch(e => console.warn(e));
+        }, 6000);
+      } catch (e) {
+        console.warn('Web Audio API not supported:', e);
+      }
+    }
+  }, [notificationSound]);
 
   useEffect(() => {
     // Ask for native notification permission on load
@@ -229,59 +271,27 @@ export function AppProvider({ children }) {
 
     if (!nextPrayer) return;
 
-    // Detect the exact moment the countdown drops to 0
-    if (
-      prevRemainingRef.current !== null &&
-      prevRemainingRef.current > 0 &&
-      nextPrayer.remaining === 0
-    ) {
-      // Check if user has alerts enabled for this specific prayer
-      if (notifications[nextPrayer.name]) {
-        const title = `Time for ${PRAYER_NAMES[nextPrayer.name]?.label || nextPrayer.name}`;
-        
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(title, { body: 'May your prayer be accepted.', icon: '/icons/logo.svg' });
-        }
+    const reminderMs = reminderMinutes * 60 * 1000;
+    const isExactTime = prevRemainingRef.current !== null && prevRemainingRef.current > 0 && nextPrayer.remaining === 0;
+    const isReminderTime = prevRemainingRef.current !== null && prevRemainingRef.current > reminderMs && nextPrayer.remaining <= reminderMs;
 
-        if (notificationSound) {
-          const audio = new Audio(notificationSound);
-          audio.play().catch(e => console.warn('Audio playback blocked:', e));
-        } else {
-          // Fallback: 5-second beep-beep sequence via Web Audio API
-          try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const now = audioCtx.currentTime;
-            for (let i = 0; i < 5; i++) {
-              const playBeep = (offset) => {
-                const osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.frequency.value = 880; // A5 note
-                gain.gain.setValueAtTime(0, now + offset);
-                gain.gain.linearRampToValueAtTime(0.5, now + offset + 0.05);
-                gain.gain.setValueAtTime(0.5, now + offset + 0.1);
-                gain.gain.linearRampToValueAtTime(0, now + offset + 0.15);
-                osc.start(now + offset);
-                osc.stop(now + offset + 0.15);
-              };
-              playBeep(i);         // First beep
-              playBeep(i + 0.2);   // Second beep
-            }
-            
-            // Close the context to prevent browser memory leaks (max active contexts limit)
-            setTimeout(() => {
-              if (audioCtx.state !== 'closed') audioCtx.close().catch(e => console.warn(e));
-            }, 6000);
-          } catch (e) {
-            console.warn('Web Audio API not supported:', e);
-          }
-        }
+    // 1. Trigger Exact Time Alert
+    if (isExactTime && notifications[nextPrayer.name]) {
+      const title = `Time for ${PRAYER_NAMES[nextPrayer.name]?.label || nextPrayer.name}`;
+      triggerAlert(title, 'May your prayer be accepted.');
+    }
+
+    // 2. Trigger Early Reminder Alert
+    if (isReminderTime && reminderFiredRef.current !== nextPrayer.name) {
+      if (notifications[nextPrayer.name]) {
+        const title = `Reminder: ${PRAYER_NAMES[nextPrayer.name]?.label || nextPrayer.name} is in ${reminderMinutes} minutes`;
+        triggerAlert(title, 'Prepare for prayer.');
       }
+      reminderFiredRef.current = nextPrayer.name;
     }
 
     prevRemainingRef.current = nextPrayer.remaining;
-  }, [nextPrayer, notifications, notificationSound]);
+  }, [nextPrayer, notifications, reminderMinutes, triggerAlert]);
 
   /* ── Request geolocation ── */
   const fetchLocation = useCallback(() => {

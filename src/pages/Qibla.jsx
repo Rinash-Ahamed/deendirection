@@ -12,6 +12,34 @@ export default function Qibla() {
     if (!location && !locLoading) fetchLocation();
   }, []);
 
+  // Keep screen awake while compass is active
+  useEffect(() => {
+    let wakeLock = null;
+
+    const requestWakeLock = async () => {
+      if ('wakeLock' in navigator && isCompassActive) {
+        try {
+          wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {
+          console.warn('Wake Lock error:', err);
+        }
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') requestWakeLock();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock !== null) wakeLock.release().catch(() => {});
+    };
+  }, [isCompassActive]);
+
   const handleShowDirection = () => {
     // iOS 13+ requires explicit permission for DeviceOrientation
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
