@@ -12,22 +12,53 @@ import { useState, useEffect, useRef } from 'react';
 export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, isActive = false, onFacingQibla }) {
   const [deviceHeading, setHeading] = useState(null);
   const [hasPermission, setHasPerm] = useState(null);
+  const prevAngleRef = useRef(0);
+  const wasFacingRef = useRef(false);
+  const prevHeadingRef = useRef(0);
 
   // Angle of needle tip from top (0 = North, clockwise)
   // When device heading = H, qibla bearing = Q:
   //   needle rotation = Q - H  (so needle points toward Qibla relative to screen)
-  const needleAngle = deviceHeading !== null
+  const rawTargetAngle = deviceHeading !== null
     ? ((qiblaAngle - deviceHeading) + 360) % 360
     : 0;
+
+  let displayAngle = 0;
+  if (deviceHeading !== null) {
+    let diff = rawTargetAngle - (prevAngleRef.current % 360);
+    if (diff > 180) diff -= 360;
+    else if (diff < -180) diff += 360;
+    displayAngle = prevAngleRef.current + diff;
+    prevAngleRef.current = displayAngle;
+  }
+
+  // Smooth rotation for the compass background dial
+  const rawHeadingAngle = deviceHeading !== null ? -deviceHeading : 0;
+  let displayHeadingAngle = 0;
+  if (deviceHeading !== null) {
+    let diffH = rawHeadingAngle - (prevHeadingRef.current % 360);
+    if (diffH > 180) diffH -= 360;
+    else if (diffH < -180) diffH += 360;
+    displayHeadingAngle = prevHeadingRef.current + diffH;
+    prevHeadingRef.current = displayHeadingAngle;
+  }
 
   /* ── Notify parent if facing Qibla ── */
   useEffect(() => {
     if (onFacingQibla && deviceHeading !== null) {
       // +/- 5 degrees tolerance around North (0/360) where the Qibla needle points straight up
-      const isFacing = needleAngle <= 5 || needleAngle >= 355;
+      const isFacing = rawTargetAngle <= 5 || rawTargetAngle >= 355;
+      
+      if (isFacing && !wasFacingRef.current) {
+        if ('vibrate' in navigator) {
+          navigator.vibrate(50); // 50ms short vibration burst
+        }
+      }
+      wasFacingRef.current = isFacing;
+
       onFacingQibla(isFacing);
     }
-  }, [needleAngle, deviceHeading, onFacingQibla]);
+  }, [rawTargetAngle, deviceHeading, onFacingQibla]);
 
   /* ── Request device orientation ── */
   useEffect(() => {
@@ -37,7 +68,15 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
       return;
     }
 
+    let useAbsolute = false;
+
     const handler = (e) => {
+      if (e.type === 'deviceorientationabsolute') {
+        useAbsolute = true;
+      } else if (useAbsolute && e.type === 'deviceorientation') {
+        return; // Ignore relative events if absolute hardware orientation is available
+      }
+
       if (e.webkitCompassHeading != null) {
         // iOS
         setHeading(e.webkitCompassHeading);
@@ -48,9 +87,13 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
     // Permission was already requested by the parent button, so we just attach
     setHasPerm(true);
+    window.addEventListener('deviceorientationabsolute', handler, true);
     window.addEventListener('deviceorientation', handler, true);
 
-    return () => window.removeEventListener('deviceorientation', handler, true);
+    return () => {
+      window.removeEventListener('deviceorientationabsolute', handler, true);
+      window.removeEventListener('deviceorientation', handler, true);
+    };
   }, [isActive]);
 
   const r    = size / 2;
@@ -101,34 +144,50 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
           <circle cx={cx} cy={cy} r={r - 10}
                   fill="none" stroke="#D4AF37" strokeWidth="0.5" strokeOpacity="0.25"/>
 
-          {/* Tick marks */}
-          {ticks.map((t, i) => (
-            <line key={i}
-              x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-              stroke="#D4AF37"
-              strokeWidth={t.isMajor ? 1.5 : t.isMid ? 1 : 0.6}
-              strokeOpacity={t.isMajor ? 0.9 : t.isMid ? 0.5 : 0.25}
-            />
-          ))}
+          {/* Rotating Dial (Ticks and Cardinals) */}
+          <g
+            style={{
+              transform: `rotate(${displayHeadingAngle}deg)`,
+              transformOrigin: `${cx}px ${cy}px`,
+              transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
+              willChange: 'transform'
+            }}
+          >
+            {/* Tick marks */}
+            {ticks.map((t, i) => (
+              <line key={i}
+                x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+                stroke="#D4AF37"
+                strokeWidth={t.isMajor ? 1.5 : t.isMid ? 1 : 0.6}
+                strokeOpacity={t.isMajor ? 0.9 : t.isMid ? 0.5 : 0.25}
+              />
+            ))}
 
-          {/* Cardinal labels */}
-          {cardinals.map(({ label, angle }) => {
-            const rad = angle * Math.PI / 180;
-            const lx  = cx + Math.sin(rad) * (r - 30);
-            const ly  = cy - Math.cos(rad) * (r - 30);
-            return (
-              <text key={label}
-                x={lx} y={ly}
-                textAnchor="middle" dominantBaseline="central"
-                fontSize={label === 'N' ? 14 : 11}
-                fontFamily="Cinzel, serif"
-                fontWeight={label === 'N' ? '700' : '400'}
-                fill={label === 'N' ? '#D4AF37' : 'rgba(245,245,220,0.5)'}
-              >
-                {label}
-              </text>
-            );
-          })}
+            {/* Cardinal labels */}
+            {cardinals.map(({ label, angle }) => {
+              const rad = angle * Math.PI / 180;
+              const lx  = cx + Math.sin(rad) * (r - 30);
+              const ly  = cy - Math.cos(rad) * (r - 30);
+              return (
+                <text key={label}
+                  x={lx} y={ly}
+                  textAnchor="middle" dominantBaseline="central"
+                  fontSize={label === 'N' ? 14 : 11}
+                  fontFamily="Cinzel, serif"
+                  fontWeight={label === 'N' ? '700' : '400'}
+                  fill={label === 'N' ? '#D4AF37' : 'rgba(245,245,220,0.5)'}
+                  style={{
+                    transform: `rotate(${-displayHeadingAngle}deg)`,
+                    transformOrigin: `${lx}px ${ly}px`,
+                    transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
+                    willChange: 'transform'
+                  }}
+                >
+                  {label}
+                </text>
+              );
+            })}
+          </g>
 
           {/* Inner ring */}
           <circle cx={cx} cy={cy} r={r * 0.38}
@@ -138,7 +197,12 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
           {/* Qibla Needle — rotates to point at Qibla */}
           <g
             className="compass-needle"
-            style={{ transform: `rotate(${needleAngle}deg)`, transformOrigin: `${cx}px ${cy}px` }}
+            style={{
+              transform: `rotate(${displayAngle}deg)`,
+              transformOrigin: `${cx}px ${cy}px`,
+              transition: deviceHeading !== null ? 'transform 0.25s cubic-bezier(0.2, 0.0, 0.2, 1)' : 'none',
+              willChange: 'transform'
+            }}
           >
             {/* North / Qibla tip */}
             <polygon
