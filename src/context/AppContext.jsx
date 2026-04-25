@@ -19,7 +19,7 @@ export const PRAYER_NAMES = {
 
 export const PRAYER_KEYS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 export const MIN_REMINDER_MINUTES = 5;
-export const MAX_REMINDER_MINUTES = 60;
+export const MAX_REMINDER_MINUTES = 20;
 
 export const CALCULATION_METHODS = [
   { key: 'MuslimWorldLeague',    label: 'Muslim World League' },
