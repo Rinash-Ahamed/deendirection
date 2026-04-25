@@ -126,6 +126,7 @@ export default function Settings() {
     manualPrayerTimes, setManualPrayerTime,
     notificationSound, setNotificationSound,
     notifications, setNotifs,
+    theme, setTheme,
   } = useApp();
 
   useEffect(() => {
@@ -190,6 +191,32 @@ export default function Settings() {
       <div className="divider-gold" style={{ margin: '0 22px 24px' }} />
 
       <div style={{ padding: '0 20px' }}>
+        <Section title="Appearance">
+          <Row label="Theme" sub="Choose your preferred color mode" last>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['light', 'dark'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  style={{
+                    background: theme === t ? 'rgba(212,175,55,0.12)' : 'transparent',
+                    border: theme === t ? '1px solid rgba(212,175,55,0.25)' : '1px solid rgba(245,245,220,0.15)',
+                    borderRadius: 8,
+                    color: theme === t ? '#D4AF37' : 'rgba(245,245,220,0.6)',
+                    fontSize: 12,
+                    textTransform: 'capitalize',
+                    padding: '6px 14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </Row>
+        </Section>
+
         <Section title="Location">
           <Row
             label="Current Location"

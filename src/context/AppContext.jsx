@@ -145,6 +145,25 @@ export function AppProvider({ children }) {
   }, []);
   const [updateTrigger, setUpdateTrigger] = useState(0);
 
+  /* ── Theme ── */
+  const [theme, setTheme] = useStickyState('dark', 'hidaya_theme');
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  /* ── Network Status ── */
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   /* ── Compute prayer times whenever location / method changes ── */
   useEffect(() => {
     if (!location) return;
@@ -363,6 +382,8 @@ export function AppProvider({ children }) {
       notificationSound, setNotificationSound,
       reminderMinutes, setReminderMinutes,
       manualPrayerTimes, setManualPrayerTime,
+      isOnline,
+      theme, setTheme,
     }}>
       {children}
     </AppCtx.Provider>

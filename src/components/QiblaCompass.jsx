@@ -14,13 +14,12 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
   const [hasPermission, setHasPerm] = useState(null);
   const wasFacingRef = useRef(false);
 
+  const rawTargetAngle = continuousHeading !== null ? ((qiblaAngle - continuousHeading) % 360 + 360) % 360 : null;
+  const isFacing = rawTargetAngle !== null && (rawTargetAngle <= 5 || rawTargetAngle >= 355);
+
   /* ── Notify parent & vibrate if facing Qibla ── */
   useEffect(() => {
     if (onFacingQibla && continuousHeading !== null) {
-      const rawTargetAngle = ((qiblaAngle - continuousHeading) % 360 + 360) % 360;
-      // +/- 5 degrees tolerance around North (0/360)
-      const isFacing = rawTargetAngle <= 5 || rawTargetAngle >= 355;
-      
       if (isFacing && !wasFacingRef.current) {
         if ('vibrate' in navigator) {
           navigator.vibrate(50); // 50ms short vibration burst
@@ -30,7 +29,7 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
       onFacingQibla(isFacing);
     }
-  }, [continuousHeading, qiblaAngle, onFacingQibla]);
+  }, [continuousHeading, qiblaAngle, onFacingQibla, isFacing]);
 
   /* ── Request device orientation ── */
   useEffect(() => {
@@ -134,6 +133,22 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
                   fill="rgba(10,10,10,0.85)"
                   stroke="#D4AF37" strokeWidth="1.5" strokeOpacity="0.6"/>
 
+          {/* Alignment Ripple Effect */}
+          {isFacing && (
+            <g>
+              <circle cx={cx} cy={cy} fill="none" stroke="#D4AF37">
+                <animate attributeName="r" values={`10; ${r - 10}`} dur="2s" begin="0s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.8; 0" dur="2s" begin="0s" repeatCount="indefinite" />
+                <animate attributeName="stroke-width" values="3; 0" dur="2s" begin="0s" repeatCount="indefinite" />
+              </circle>
+              <circle cx={cx} cy={cy} fill="none" stroke="#D4AF37">
+                <animate attributeName="r" values={`10; ${r - 10}`} dur="2s" begin="-1s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.8; 0" dur="2s" begin="-1s" repeatCount="indefinite" />
+                <animate attributeName="stroke-width" values="3; 0" dur="2s" begin="-1s" repeatCount="indefinite" />
+              </circle>
+            </g>
+          )}
+
           {/* Outer decorative ring */}
           <circle cx={cx} cy={cy} r={r - 10}
                   fill="none" stroke="#D4AF37" strokeWidth="0.5" strokeOpacity="0.25"/>
@@ -185,6 +200,29 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
           <circle cx={cx} cy={cy} r={r * 0.38}
                   fill="rgba(15,61,46,0.3)"
                   stroke="#D4AF37" strokeWidth="1" strokeOpacity="0.35"/>
+                  
+          {/* Fixed Forward Guideline (Device Top / Alignment Mark) */}
+          <g className="forward-guideline">
+            {/* Outer triangle pointer */}
+            <path
+              d={`M ${cx - 7} 2 L ${cx + 7} 2 L ${cx} 14 Z`}
+              fill={isFacing ? "#F5F5DC" : "#E8CB5D"}
+              stroke="#0A0A0A"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              style={{ transition: 'fill 0.3s ease' }}
+            />
+            {/* Dashed alignment line */}
+            <line
+              x1={cx} y1={18}
+              x2={cx} y2={cy - r * 0.40}
+              stroke={isFacing ? "#F5F5DC" : "#D4AF37"}
+              strokeWidth={isFacing ? "2" : "1.5"}
+              strokeDasharray="3 4"
+              opacity={isFacing ? "0.9" : "0.4"}
+              style={{ transition: 'all 0.3s ease' }}
+            />
+          </g>
 
           {/* Qibla Needle — rotates to point at Qibla */}
           <g
