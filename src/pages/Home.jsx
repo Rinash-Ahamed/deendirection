@@ -263,7 +263,7 @@ export default function Home() {
       }}>
         {/* Logo + name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src="/icons/onlylogo.png" alt="Hidaya" width={36} height={36}
+          <img src="/icons/logo.png" alt="Hidaya" width={36} height={36}
                style={{ filter: 'drop-shadow(0 0 6px rgba(212,175,55,0.4))', borderRadius: 8 }} />
           <div>
             <p style={{ fontFamily: 'Cinzel, serif', fontSize: 18, color: '#D4AF37', letterSpacing: '0.1em', lineHeight: 1 }}>
