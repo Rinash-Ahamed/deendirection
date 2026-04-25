@@ -519,7 +519,7 @@ export default function Settings() {
           width: '100%',
         }}>
           <img
-            src="/icons/logo.svg"
+          src="/icons/logo.png"
             alt="Hidaya"
             width={48}
             height={48}
