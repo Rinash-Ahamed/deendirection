@@ -137,6 +137,7 @@ export function AppProvider({ children }) {
     fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true,
   }, 'hidaya_notifications');
   const [notificationSound, setNotificationSound] = useStickyState(null, 'hidaya_notificationSound');
+  const [notificationSoundName, setNotificationSoundName] = useStickyState('', 'hidaya_notificationSoundName');
 
   const [reminderMinutes, setReminderMinutes] = useStickyState(15, 'hidaya_reminderMinutes');
   const [manualPrayerTimes, setManualPrayerTimes] = useStickyState({}, 'hidaya_manualPrayerTimes');
@@ -306,6 +307,47 @@ export function AppProvider({ children }) {
     prevRemainingRef.current = nextPrayer.remaining;
   }, [nextPrayer, notifications, reminderMinutes, triggerAlert]);
 
+  /* ── Schedule Background Notifications (When app is closed) ── */
+  useEffect(() => {
+    if (!prayers || !notifications) return;
+
+    if (
+      'serviceWorker' in navigator &&
+      'Notification' in window &&
+      'showTrigger' in Notification.prototype &&
+      'TimestampTrigger' in window
+    ) {
+      navigator.serviceWorker.ready.then(registration => {
+        PRAYER_KEYS.forEach(key => {
+          const time = prayers[key];
+          if (!time) return;
+
+          const timeMs = time.getTime();
+          if (timeMs > Date.now() && notifications[key]) {
+            // 1. Trigger Exact Time Alert
+            registration.showNotification(`Time for ${PRAYER_NAMES[key]?.label || key}`, {
+              body: 'May your prayer be accepted.',
+              icon: '/icons/logo.png',
+              tag: `prayer-exact-${key}`,
+              showTrigger: new window.TimestampTrigger(timeMs)
+            }).catch(e => console.debug('Trigger failed', e));
+
+            // 2. Trigger Early Reminder Alert
+            const reminderMs = timeMs - (reminderMinutes * 60 * 1000);
+            if (reminderMs > Date.now()) {
+              registration.showNotification(`Reminder: ${PRAYER_NAMES[key]?.label || key} is in ${reminderMinutes} minutes`, {
+                body: 'Prepare for prayer.',
+                icon: '/icons/logo.png',
+                tag: `prayer-reminder-${key}`,
+                showTrigger: new window.TimestampTrigger(reminderMs)
+              }).catch(e => console.debug('Trigger failed', e));
+            }
+          }
+        });
+      });
+    }
+  }, [prayers, notifications, reminderMinutes]);
+
   /* ── Request geolocation ── */
   const fetchLocation = useCallback(() => {
     setLocLoading(true);
@@ -374,6 +416,7 @@ export function AppProvider({ children }) {
       notifications, setNotifs,
       formatRemaining,
       notificationSound, setNotificationSound,
+      notificationSoundName, setNotificationSoundName,
       reminderMinutes, setReminderMinutes,
       manualPrayerTimes, setManualPrayerTime,
       isOnline,

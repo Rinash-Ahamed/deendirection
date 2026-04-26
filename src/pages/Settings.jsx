@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   useApp,
   PRAYER_NAMES,
@@ -119,12 +119,17 @@ export default function Settings() {
   const [editingPrayer, setEditingPrayer] = useState(null);
   const [installPrompt, setInstallPrompt] = useState(null);
   const [appInstalled, setAppInstalled] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
+  const fallbackTimeoutRef = useRef(null);
+  const fallbackCtxRef = useRef(null);
   const {
     location, cityName, locationErr, locLoading, fetchLocation,
     prayers,
     reminderMinutes, setReminderMinutes,
     manualPrayerTimes, setManualPrayerTime,
     notificationSound, setNotificationSound,
+    notificationSoundName, setNotificationSoundName,
     notifications, setNotifs,
   } = useApp();
 
@@ -151,6 +156,28 @@ export default function Settings() {
     };
   }, []);
 
+  const handleStopSound = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    if (fallbackCtxRef.current && fallbackCtxRef.current.state !== 'closed') {
+      fallbackCtxRef.current.close().catch(e => console.warn(e));
+      fallbackCtxRef.current = null;
+    }
+    if (fallbackTimeoutRef.current) {
+      clearTimeout(fallbackTimeoutRef.current);
+      fallbackTimeoutRef.current = null;
+    }
+    setIsPlaying(false);
+  };
+
+  // Stop audio playback if the user navigates away from settings
+  useEffect(() => {
+    return handleStopSound;
+  }, []);
+
   const handleInstallApp = async () => {
     if (!installPrompt) return;
 
@@ -161,6 +188,61 @@ export default function Settings() {
       setAppInstalled(true);
     }
     setInstallPrompt(null);
+  };
+
+  const handleClearSound = () => {
+    handleStopSound();
+    setNotificationSound(null);
+    setNotificationSoundName('');
+  };
+
+  const handleTogglePlay = () => {
+    if (isPlaying) {
+      handleStopSound();
+      return;
+    }
+
+    setIsPlaying(true);
+
+    if (notificationSound) {
+      audioRef.current = new Audio(notificationSound);
+      audioRef.current.onended = () => setIsPlaying(false);
+      audioRef.current.play().catch(e => {
+        console.warn('Audio playback failed:', e);
+        setIsPlaying(false);
+      });
+    } else {
+      // Fallback: 5-second beep-beep sequence via Web Audio API
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        fallbackCtxRef.current = audioCtx;
+        const now = audioCtx.currentTime;
+        for (let i = 0; i < 5; i++) {
+          const playBeep = (offset) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 880; // A5 note
+            gain.gain.setValueAtTime(0, now + offset);
+            gain.gain.linearRampToValueAtTime(0.5, now + offset + 0.05);
+            gain.gain.setValueAtTime(0.5, now + offset + 0.1);
+            gain.gain.linearRampToValueAtTime(0, now + offset + 0.15);
+            osc.start(now + offset);
+            osc.stop(now + offset + 0.15);
+          };
+          playBeep(i);         // First beep
+          playBeep(i + 0.2);   // Second beep
+        }
+        
+        fallbackTimeoutRef.current = setTimeout(() => {
+          handleStopSound();
+        }, 6000);
+      } catch (e) {
+        console.warn('Web Audio API not supported:', e);
+        setIsPlaying(false);
+      }
+    }
   };
 
   return (
@@ -271,7 +353,7 @@ export default function Settings() {
         </Section>
 
         <Section title="Notification Sound">
-          <Row label="Custom Sound" sub="Choose an audio file from your device" last={!notificationSound}>
+          <Row label="Custom Sound" sub={notificationSoundName || "Choose an audio file from your device"} last={false}>
             <label
               style={{
                 background: 'rgba(212,175,55,0.12)',
@@ -299,18 +381,21 @@ export default function Settings() {
                       return;
                     }
                     const reader = new FileReader();
-                    reader.onload = (event) => setNotificationSound(event.target.result);
+                    reader.onload = (event) => {
+                      setNotificationSound(event.target.result);
+                      setNotificationSoundName(file.name);
+                    };
                     reader.readAsDataURL(file);
                   }
                 }}
               />
             </label>
           </Row>
-          {notificationSound && (
-            <Row label="Test Sound" last>
-              <div style={{ display: 'flex', gap: 8 }}>
+          <Row label="Test Sound" sub={notificationSound ? "Custom audio selected" : "Using fallback beeps"} last>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {notificationSound && (
                 <button
-                  onClick={() => setNotificationSound(null)}
+                  onClick={handleClearSound}
                   style={{
                     background: 'transparent',
                     border: '1px solid rgba(245,245,220,0.15)',
@@ -325,8 +410,9 @@ export default function Settings() {
                 >
                   Clear
                 </button>
+              )}
                 <button
-                  onClick={() => new Audio(notificationSound).play()}
+                  onClick={handleTogglePlay}
                   style={{
                     background: 'rgba(212,175,55,0.12)',
                     border: '1px solid rgba(212,175,55,0.25)',
@@ -340,11 +426,10 @@ export default function Settings() {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  Play
+                  {isPlaying ? 'Stop' : 'Play'}
                 </button>
               </div>
             </Row>
-          )}
         </Section>
 
         <Section title="Prayer Times">
