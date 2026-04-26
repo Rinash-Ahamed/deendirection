@@ -566,7 +566,7 @@ export default function Settings() {
             </span>
           </Row>
           <Row label="Developer" last>
-            <span style={{ fontSize: 13, color: 'rgba(245,245,220,0.4)' }}>Rinash</span>
+            <span style={{ fontSize: 13, color: 'rgba(245,245,220,0.4)' }}>Rinash Ahamed</span>
           </Row>
         </Section>
 

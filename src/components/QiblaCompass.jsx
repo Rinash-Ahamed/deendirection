@@ -22,7 +22,8 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
     if (onFacingQibla && continuousHeading !== null) {
       if (isFacing && !wasFacingRef.current) {
         if ('vibrate' in navigator) {
-          navigator.vibrate(50); // 50ms short vibration burst
+          // Double-pulse "heartbeat" vibration (100ms on, 50ms off, 100ms on)
+          navigator.vibrate([100, 50, 100]);
         }
       }
       wasFacingRef.current = isFacing;
@@ -130,18 +131,19 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
         >
           {/* Background circle */}
           <circle cx={cx} cy={cy} r={r - 2}
-                  fill="rgba(10,10,10,0.85)"
-                  stroke="#D4AF37" strokeWidth="1.5" strokeOpacity="0.6"/>
+                  fill={isFacing ? '#D4AF37' : 'rgba(10,10,10,0.85)'}
+                  stroke={isFacing ? '#F5F5DC' : '#D4AF37'} strokeWidth="1.5" strokeOpacity="0.6"
+                  style={{ transition: 'all 0.4s ease' }}/>
 
           {/* Alignment Ripple Effect */}
           {isFacing && (
             <g>
-              <circle cx={cx} cy={cy} fill="none" stroke="#D4AF37">
+              <circle cx={cx} cy={cy} fill="none" stroke="#F5F5DC">
                 <animate attributeName="r" values={`10; ${r - 10}`} dur="2s" begin="0s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.8; 0" dur="2s" begin="0s" repeatCount="indefinite" />
                 <animate attributeName="stroke-width" values="3; 0" dur="2s" begin="0s" repeatCount="indefinite" />
               </circle>
-              <circle cx={cx} cy={cy} fill="none" stroke="#D4AF37">
+              <circle cx={cx} cy={cy} fill="none" stroke="#F5F5DC">
                 <animate attributeName="r" values={`10; ${r - 10}`} dur="2s" begin="-1s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.8; 0" dur="2s" begin="-1s" repeatCount="indefinite" />
                 <animate attributeName="stroke-width" values="3; 0" dur="2s" begin="-1s" repeatCount="indefinite" />
@@ -151,7 +153,8 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
           {/* Outer decorative ring */}
           <circle cx={cx} cy={cy} r={r - 10}
-                  fill="none" stroke="#D4AF37" strokeWidth="0.5" strokeOpacity="0.25"/>
+                  fill="none" stroke={isFacing ? '#0F3D2E' : '#D4AF37'} strokeWidth="0.5" strokeOpacity="0.25"
+                  style={{ transition: 'stroke 0.4s ease' }}/>
 
           {/* Rotating Dial (Ticks and Cardinals) */}
           <g
@@ -165,9 +168,10 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
             {ticks.map((t, i) => (
               <line key={i}
                 x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-                stroke="#D4AF37"
+                stroke={isFacing ? '#0F3D2E' : '#D4AF37'}
                 strokeWidth={t.isMajor ? 1.5 : t.isMid ? 1 : 0.6}
                 strokeOpacity={t.isMajor ? 0.9 : t.isMid ? 0.5 : 0.25}
+                style={{ transition: 'stroke 0.4s ease' }}
               />
             ))}
 
@@ -183,11 +187,12 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
                   fontSize={label === 'N' ? 14 : 11}
                   fontFamily="Cinzel, serif"
                   fontWeight={label === 'N' ? '700' : '400'}
-                  fill={label === 'N' ? '#D4AF37' : 'rgba(245,245,220,0.5)'}
+                  fill={isFacing ? '#0F3D2E' : (label === 'N' ? '#D4AF37' : 'rgba(245,245,220,0.5)')}
                   style={{
                     transform: `rotate(${-displayHeadingAngle}deg)`,
                     transformOrigin: `${lx}px ${ly}px`,
-                    willChange: 'transform'
+                    willChange: 'transform',
+                    transition: 'fill 0.4s ease'
                   }}
                 >
                   {label}
@@ -198,8 +203,9 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
           {/* Inner ring */}
           <circle cx={cx} cy={cy} r={r * 0.38}
-                  fill="rgba(15,61,46,0.3)"
-                  stroke="#D4AF37" strokeWidth="1" strokeOpacity="0.35"/>
+                  fill={isFacing ? 'rgba(255,255,255,0.15)' : 'rgba(15,61,46,0.3)'}
+                  stroke={isFacing ? '#0F3D2E' : '#D4AF37'} strokeWidth="1" strokeOpacity={isFacing ? "0.6" : "0.35"}
+                  style={{ transition: 'all 0.4s ease' }}/>
                   
           {/* Fixed Forward Guideline (Device Top / Alignment Mark) */}
           <g className="forward-guideline">
@@ -236,12 +242,14 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
             {/* North / Qibla tip */}
             <polygon
               points={`${cx},${cy - r * 0.52}  ${cx - 7},${cy}  ${cx + 7},${cy}`}
-              fill="url(#needleGoldGrad)"
+              fill={isFacing ? "#0F3D2E" : "url(#needleGoldGrad)"}
+              style={{ transition: 'fill 0.4s ease' }}
             />
             {/* South tail */}
             <polygon
               points={`${cx},${cy + r * 0.38}  ${cx - 5},${cy}  ${cx + 5},${cy}`}
-              fill="rgba(245,245,220,0.2)"
+              fill={isFacing ? "rgba(15,61,46,0.4)" : "rgba(245,245,220,0.2)"}
+              style={{ transition: 'fill 0.4s ease' }}
             />
 
             {/* Kaaba icon at tip */}
@@ -249,13 +257,15 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
               x={cx - 9} y={cy - r * 0.52 - 16}
               width={18} height={14}
               rx="2"
-              fill="rgba(212,175,55,0.9)"
-              stroke="#A88B1F" strokeWidth="1"
+              fill={isFacing ? "#0F3D2E" : "rgba(212,175,55,0.9)"}
+              stroke={isFacing ? "#F5F5DC" : "#A88B1F"} strokeWidth="1"
+              style={{ transition: 'all 0.4s ease' }}
             />
             <line
               x1={cx - 9} y1={cy - r * 0.52 - 8}
               x2={cx + 9} y2={cy - r * 0.52 - 8}
-              stroke="#A88B1F" strokeWidth="1"
+              stroke={isFacing ? "#F5F5DC" : "#A88B1F"} strokeWidth="1"
+              style={{ transition: 'all 0.4s ease' }}
             />
           </g>
 
@@ -269,8 +279,9 @@ export default function QiblaCompass({ qiblaAngle, size = 280, compact = false, 
 
           {/* Center pivot */}
           <circle cx={cx} cy={cy} r={8}
-                  fill="#0F3D2E" stroke="#D4AF37" strokeWidth="1.5"/>
-          <circle cx={cx} cy={cy} r={3.5} fill="#D4AF37"/>
+                  fill={isFacing ? "#F5F5DC" : "#0F3D2E"} stroke={isFacing ? "#0F3D2E" : "#D4AF37"} strokeWidth="1.5"
+                  style={{ transition: 'all 0.4s ease' }}/>
+          <circle cx={cx} cy={cy} r={3.5} fill={isFacing ? "#0F3D2E" : "#D4AF37"} style={{ transition: 'fill 0.4s ease' }}/>
         </svg>
       </div>
 

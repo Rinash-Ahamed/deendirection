@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext.jsx';
 import QiblaCompass from '../components/QiblaCompass.jsx';
 import MihrabArch from '../components/MihrabArch.jsx';
@@ -13,6 +13,8 @@ export default function Qibla() {
   const { location, qiblaAngle, locLoading, fetchLocation, locationErr } = useApp();
   const [isCompassActive, setIsCompassActive] = useState(false);
   const [isFacingQibla, setIsFacingQibla] = useState(false);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (!location && !locLoading) fetchLocation();
@@ -46,6 +48,15 @@ export default function Qibla() {
     };
   }, [isCompassActive]);
 
+  // Stop camera stream when unmounting
+  useEffect(() => {
+    return () => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, []);
+
   const handleShowDirection = () => {
     // iOS 13+ requires explicit permission for DeviceOrientation
     if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -64,11 +75,55 @@ export default function Qibla() {
     }
   };
 
-  return (
-    <div style={{ padding: '0 0 8px', minHeight: '100%' }}>
+  const handleToggleCamera = async () => {
+    if (isCameraOn) {
+      if (videoRef.current && videoRef.current.srcObject) {
+        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      setIsCameraOn(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment' }
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+        setIsCameraOn(true);
+      } catch (err) {
+        console.warn('Camera access error:', err);
+        alert('Unable to access camera. Please check your browser permissions.');
+      }
+    }
+  };
 
-      {/* ── Header ── */}
-      <div style={{ padding: '20px 22px 0', textAlign: 'center' }}>
+  return (
+    <div style={{ minHeight: '100%', position: 'relative' }}>
+      {/* ── AR Camera Background ── */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: isCameraOn ? 'block' : 'none',
+          zIndex: 0,
+          opacity: 0.45,
+          pointerEvents: 'none',
+        }}
+      />
+
+      {/* ── Foreground Content ── */}
+      <div style={{ padding: '0 0 8px', position: 'relative', zIndex: 1 }}>
+        {/* ── Header ── */}
+        <div style={{ padding: '20px 22px 0', textAlign: 'center', position: 'relative' }}>
         <p style={{
           fontFamily: 'Cinzel, serif',
           fontSize: 11,
@@ -174,6 +229,34 @@ export default function Qibla() {
             </div>
           )}
 
+          {/* AR Camera Toggle */}
+          <div style={{ marginTop: isCompassActive ? 20 : 12, width: '100%', maxWidth: 360 }}>
+            <button
+              onClick={handleToggleCamera}
+              style={{
+                width: '100%',
+                padding: '14px',
+                fontSize: 15,
+                background: isCameraOn ? 'rgba(212,175,55,0.15)' : 'rgba(255,255,255,0.05)',
+                border: isCameraOn ? '1px solid rgba(212,175,55,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 8,
+                color: isCameraOn ? '#D4AF37' : 'rgba(245,245,220,0.6)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                transition: 'all 0.3s ease',
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+              {isCameraOn ? 'Disable AR Background' : 'Enable AR Background'}
+            </button>
+          </div>
+
           {/* Spiritual note */}
           <div style={{
             marginTop: 20,
@@ -193,6 +276,7 @@ export default function Qibla() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
